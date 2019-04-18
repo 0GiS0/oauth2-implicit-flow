@@ -29,7 +29,7 @@
         </div>
         <!--Stepper from Codepen: https://codepen.io/thdeux/pen/zBGNrM-->
         <div class="md-stepper-horizontal orange">
-            <div class="md-step active">
+            <div class="md-step">
                 <a href="/">
                     <div class="md-step-circle"><span>1</span></div>
                 </a>
@@ -37,7 +37,7 @@
                 <div class="md-step-bar-left"></div>
                 <div class="md-step-bar-right"></div>
             </div>
-            <div class="md-step">
+            <div class="md-step active">
                 <div class="md-step-circle"><span>2</span></div>
                 <div class="md-step-title">Call the API</div>
                 <div class="md-step-bar-left"></div>
@@ -79,28 +79,15 @@
         crossorigin="anonymous"></script>
 
     <script>
-        //https://auth0.com/docs/api-auth/tutorials/implicit-grant
         function getParameterByName(name) {
             var match = RegExp('[#&]' + name + '=([^&]*)').exec(window.location.hash);
             return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
         }
 
-        function getAccessToken() {
-            return getParameterByName('access_token');
-        }
-
-        function getIdToken() {
-            return getParameterByName('id_token');
-        }
-
         $(function () {
-            var access_token = getAccessToken();
+            var access_token = getParameterByName('access_token');
 
             document.getElementById('access_token').innerText = access_token;
-
-            // Optional: an ID Token will be returned by Auth0
-            // if your response_type argument contained id_token
-            var id_token = getIdToken();
 
             // Use the Access Token to make API calls
 
