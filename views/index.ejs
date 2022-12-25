@@ -16,14 +16,14 @@
     <link rel="stylesheet" href="/css/prism.css">
     <script src="/js/prism.js"></script>
 
-    <title>OAuth 2.0 - Implicit Flow</title>
+    <title>OAuth 2.0 - SPA with Auth Code Flow and PKCE</title>
 </head>
 
 <body>
     <div class="container" style="margin-top:50px">
         <div class="jumbotron">
             <h2 class="display-4">
-                OAuth 2.0 - Implicit Flow
+                OAuth 2.0 - SPA with Auth Code Flow and PKCE
             </h2>
             <p class="lead">For client-side apps.</p>
         </div>
@@ -53,25 +53,101 @@
                     <div class="card-body">
                         <p class="card-text">This client redirects the user to the authorization server to log in and
                             consent the permissions that I'm requesting.</p>
-                        <a href="https://login.microsoftonline.com/<TENANT_ID>/oauth2/authorize?response_type=token&client_id=<CLIENT_ID>&redirect_uri=http://localhost:8000/give/me/the/access/token&scope=https://graph.microsoft.com/User.Read&resource=https://graph.microsoft.com/&state=ThisIsMyStateValue" class="btn btn-primary">Go to the authorization server</a>
+                        <a id="login" href="#" class="btn btn-primary">Go to the authorization server</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <script>
 
-    <!-- Optional JavaScript -->
-    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
-        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
-        crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
-        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
-        crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
-        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
-        crossorigin="anonymous"></script>
+        /* 1. Generate verifier */
+        function generateRandomString(length) {
+            var text = "";
+            var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+            for (var i = 0; i < length; i++) {
+                text += possible.charAt(Math.floor(Math.random() * possible.length));
+            }
+
+            return text;
+        }
+
+        /* Hashing the verifier */
+        async function generateCodeChallenge(codeVerifier) {
+            var digest = await crypto.subtle.digest("SHA-256",
+                new TextEncoder().encode(codeVerifier));
+
+            return btoa(String.fromCharCode(...new Uint8Array(digest)))
+                .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+        }
+
+        (async () => {
+
+            const TENANT_ID = 'e26de2cd-b981-4ec4-a628-95cb1e11debf';
+            const CLIENT_ID = '4a936792-3305-4650-858a-40bb43a407f8';
+
+            // Try to get the code from the query string
+            const urlParams = new URLSearchParams(window.location.search);
+
+            let code = urlParams.get('code');
+
+            console.log(`code: ${code}`);
+
+            if (!code) {
+
+                let state = generateRandomString(12);
+                let code_verifier = generateRandomString(128);
+
+                /* Storing the verifier */
+                window.sessionStorage.setItem("code_verifier", code_verifier);
+
+                let code_challenge = await generateCodeChallenge(code_verifier);
+
+                //https://example-app.com/pkce
+                console.log(`code verifier: ${code_verifier}`);
+                console.log(`code challenge: ${code_challenge}`);
+
+                const url = `
+                    https://login.microsoftonline.com/${TENANT_ID}/oauth2/authorize?client_id=${CLIENT_ID}
+                    &response_type=code
+                    &state=${state}
+                    &code_challenge=${code_challenge}
+                    &code_challenge_method=S256
+                    &redirect_uri=http://localhost:8000
+                    &scope=https://graph.microsoft.com/User.Read`;
+
+                document.getElementById('login').setAttribute('href', url);
+
+            }
+            else {
+
+                console.log(`We can ask for the token`);
+
+                let body = `grant_type=authorization_code&code=${code}&redirect_uri=${encodeURIComponent('http://localhost:8000')}&client_id=${CLIENT_ID}&code_verifier=${window.sessionStorage.getItem('code_verifier')}&scope=${encodeURIComponent('https://graph.microsoft.com/User.Read')}`;
+
+                console.log('body:');
+                console.log(body);
+
+                fetch(`https://login.microsoftonline.com/e26de2cd-b981-4ec4-a628-95cb1e11debf/oauth2/v2.0/token`,
+                    {
+                        mode: "no-cors",
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: body
+                                        }
+                ).then(response => console.log)
+                // ).then(response => response.json())
+                //     .then(response => console.log(JSON.stringify(response)))
+
+            }
+
+        })();
+
+    </script>
 </body>
 
 </html>

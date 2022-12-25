@@ -1,5 +1,5 @@
 {
-  "name": "implicit-flow",
+  "name": "oauth2-spa.auth-code-fiow-pkce",
   "version": "1.0.0",
   "description": "",
   "main": "server.js",
